@@ -1,0 +1,18 @@
+---
+- name: Install apt requirements
+  ansible.builtin.apt:
+    name: "{{ swarm_stack_apt_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  when:
+    - swarm_stack_install_apt_requirements | bool
+    - (swarm_stack_apt_packages | length) > 0
+
+- name: Install pip requirements
+  ansible.builtin.pip:
+    name: "{{ swarm_stack_pip_packages }}"
+    state: present
+  when:
+    - swarm_stack_install_pip_requirements | bool
+    - (swarm_stack_pip_packages | length) > 0

@@ -1,0 +1,46 @@
+---
+- name: Validate required role inputs
+  ansible.builtin.assert:
+    that:
+      - swarm_stack_name is defined
+      - swarm_stack_name | string | length > 0
+      - swarm_stack_content is mapping
+    fail_msg: >-
+      fidanf.docker_swarm_stack: `swarm_stack_name` (non-empty string) and
+      `swarm_stack_content` (mapping) are required.
+    quiet: true
+  tags: ["always"]
+
+- name: Run swarm preflight
+  ansible.builtin.include_tasks: preflight.yml
+  when: swarm_stack_run_preflight | bool
+  tags: ["preflight"]
+
+- name: Install requirements
+  ansible.builtin.include_tasks: requirements.yml
+  when:
+    - (swarm_stack_install_pip_requirements | bool and (swarm_stack_pip_packages | length) > 0)
+      or (swarm_stack_install_apt_requirements | bool and (swarm_stack_apt_packages | length) > 0)
+  tags: ["requirements"]
+
+- name: Ensure managed networks exist
+  ansible.builtin.include_tasks: networks.yml
+  when: (swarm_stack_managed_networks | length) > 0
+  tags: ["networks"]
+
+- name: Authenticate against registries
+  ansible.builtin.include_tasks: registries.yml
+  when: (swarm_stack_registry_logins | length) > 0
+  tags: ["registries"]
+
+- name: Manage secrets (rolling versions)
+  ansible.builtin.include_tasks: secrets.yml
+  tags: ["secrets"]
+
+- name: Manage configs (rolling versions)
+  ansible.builtin.include_tasks: configs.yml
+  tags: ["configs"]
+
+- name: Deploy stack
+  ansible.builtin.include_tasks: deploy.yml
+  tags: ["deploy"]

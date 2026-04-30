@@ -1,0 +1,36 @@
+---
+name: lint
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+
+jobs:
+  yamllint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install yamllint
+        run: pip install yamllint
+      - name: Run yamllint
+        run: yamllint .
+
+  ansible-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ansible-lint
+        run: pip install "ansible-core>=2.16,<2.19" "ansible-lint~=25.7"
+      - name: Install required collections
+        run: ansible-galaxy collection install community.docker
+      - name: Run ansible-lint
+        run: ansible-lint -vv --offline

@@ -1,0 +1,14 @@
+---
+- name: Ensure managed networks exist
+  community.docker.docker_network:
+    name: "{{ item.name }}"
+    driver: "{{ item.driver | default('overlay') }}"
+    attachable: "{{ item.attachable | default(omit) }}"
+    scope: "{{ item.scope | default(omit) }}"
+    ipam_config: "{{ item.ipam_config | default(omit) }}"
+    driver_options: "{{ item.driver_options | default(omit) }}"
+    labels: "{{ item.labels | default(omit) }}"
+    state: "{{ item.state | default('present') }}"
+  loop: "{{ swarm_stack_managed_networks }}"
+  loop_control:
+    label: "{{ item.name }}"

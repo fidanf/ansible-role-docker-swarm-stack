@@ -1,0 +1,83 @@
+---
+# =============================================================================
+# fidanf.docker_swarm_stack — public variable contract
+# =============================================================================
+# All variables are namespaced `swarm_stack_*` so the same role can deploy
+# multiple stacks from the same caller without colliding. Stack-specific
+# transformations (htpasswd, dotenv rendering, ...) are NOT performed by this
+# role; compute them in the caller's playbook `pre_tasks` and reference the
+# resulting facts inside `swarm_stack_managed_secrets[].data` /
+# `swarm_stack_managed_configs[].data` (Jinja is evaluated lazily during the
+# role loops, so play-scope facts are visible).
+# =============================================================================
+
+# Required: name of the Swarm stack to deploy. Maps to `community.docker.docker_stack.name`.
+swarm_stack_name: ""
+
+# Required: compose-style mapping describing the stack
+# (services / networks / volumes / secrets / configs).
+# Compose `secrets:` and `configs:` aliases referenced under services MUST match
+# the `alias` field of items in swarm_stack_managed_secrets /
+# swarm_stack_managed_configs below; the role injects the current rolling
+# version under each alias automatically when building the effective compose.
+swarm_stack_content: {}
+
+# List of secrets to manage with rolling versions.
+# Each item:
+#   alias: stable compose name                              (string,  required)
+#   data: secret payload                                    (string,  required when present)
+#   versions_to_keep: rolling versions retention            (int,     default: 2)
+#   tags: list of tags applied to the create/rotate task    (list,    default: ["secrets"])
+#   no_log: hide payload in Ansible output                  (bool,    default: false)
+# An item with empty/undefined `data` is silently skipped (no secret created or
+# rotated). This makes it safe to declare optional secrets at the role level
+# and only populate them when the corresponding source variable is defined.
+swarm_stack_managed_secrets: []
+
+# List of configs to manage with rolling versions.
+# Same item shape as swarm_stack_managed_secrets; default tags ["configs"].
+swarm_stack_managed_configs: []
+
+# List of overlay/external networks to ensure exist BEFORE the stack deploy.
+# Useful when `swarm_stack_content.networks.<name>` is declared as
+# `external: true` (community.docker.docker_stack will not create them).
+# Each item is passed as-is to community.docker.docker_network. Example:
+#   - name: t2_proxy
+#     driver: overlay
+#     attachable: true
+#     scope: swarm
+swarm_stack_managed_networks: []
+
+# Registry credentials to authenticate against before deploying the stack.
+# Each item: { username, password, registry_url }. `no_log: true` is enforced
+# on the underlying task. Multiple registries are supported.
+swarm_stack_registry_logins: []
+
+# -----------------------------------------------------------------------------
+# Toggles
+# -----------------------------------------------------------------------------
+
+# Run the swarm preflight (gather swarm_info, end_host on workers, then on all
+# managers except the first). Set to false when the caller has already filtered
+# its hosts pattern down to a single manager.
+swarm_stack_run_preflight: true
+swarm_stack_first_manager_only: true
+
+# Install Python deps required by community.docker modules. Disable if managed
+# elsewhere (e.g. baked into the AMI).
+swarm_stack_install_pip_requirements: true
+swarm_stack_pip_packages:
+  - jsondiff
+  - pyyaml
+
+# Optional apt packages to install before deploy (off by default). Useful e.g.
+# to provide tools the caller's pre_tasks rely on (apache2-utils for htpasswd).
+swarm_stack_install_apt_requirements: false
+swarm_stack_apt_packages: []
+
+# Stack deploy options (forwarded to community.docker.docker_stack).
+swarm_stack_with_registry_auth: true
+swarm_stack_prune: true
+
+# Emit a debug task with `community.docker.docker_stack_task_info` after deploy.
+swarm_stack_debug_task_info: true
