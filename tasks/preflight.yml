@@ -1,0 +1,26 @@
+---
+- name: Get info on Docker Swarm
+  community.docker.docker_swarm_info:
+    nodes: true
+    verbose_output: true
+  ignore_errors: true
+  register: swarm_stack_swarm_info
+  tags: ["preflight"]
+
+- name: Debug swarm info
+  ansible.builtin.debug:
+    msg: "{{ swarm_stack_swarm_info }}"
+    verbosity: 1
+  tags: ["preflight"]
+
+- name: End host for workers
+  ansible.builtin.meta: end_host
+  when: not (swarm_stack_swarm_info.docker_swarm_manager | default(false))
+  tags: ["preflight"]
+
+- name: End host for non-first managers (when first_manager_only is true)
+  ansible.builtin.meta: end_host
+  when:
+    - swarm_stack_first_manager_only | bool
+    - ansible_play_hosts[0] != inventory_hostname
+  tags: ["preflight"]

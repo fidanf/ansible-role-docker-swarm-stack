@@ -1,0 +1,41 @@
+---
+- name: Create/rotate managed configs (rolling versions)
+  community.docker.docker_config:
+    name: "{{ item.alias }}"
+    data: "{{ item.data }}"
+    rolling_versions: true
+    versions_to_keep: "{{ item.versions_to_keep | default(2) }}"
+    state: present
+  register: swarm_stack_configs_result
+  tags: "{{ item.tags | default(['configs']) }}"
+  no_log: "{{ item.no_log | default(false) }}"
+  when: item.data is defined and (item.data | string | length) > 0
+  loop: "{{ swarm_stack_managed_configs }}"
+  loop_control:
+    label: "{{ item.alias }}"
+
+- name: Initialize configs override map for compose
+  ansible.builtin.set_fact:
+    swarm_stack_configs_override: {}
+
+- name: Build configs override map (alias -> current version name)
+  ansible.builtin.set_fact:
+    swarm_stack_configs_override: >-
+      {{
+        swarm_stack_configs_override
+        | combine(
+            {
+              item.item.alias: {
+                'external': true,
+                'name': item.config_name
+              }
+            }
+          )
+      }}
+  loop: "{{ swarm_stack_configs_result.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.alias | default('unknown') }}"
+  when:
+    - item is defined
+    - item.skipped is not defined or not item.skipped
+    - item.config_name is defined

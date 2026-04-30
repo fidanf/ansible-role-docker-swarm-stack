@@ -1,0 +1,28 @@
+---
+galaxy_info:
+  role_name: docker_swarm_stack
+  namespace: fidanf
+  author: fidanf
+  description: >-
+    Generic Ansible role to deploy a Docker Swarm stack with idempotent,
+    rotation-safe secrets and configs (rolling versions), optional eager
+    network creation and registry login.
+  license: MIT
+  min_ansible_version: "2.16"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+  galaxy_tags:
+    - docker
+    - swarm
+    - stack
+    - secrets
+    - configs
+    - deployment
+
+dependencies: []
+
+collections:
+  - community.docker

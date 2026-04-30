@@ -1,0 +1,36 @@
+---
+- name: Build effective stack content with current versioned secret/config names
+  ansible.builtin.set_fact:
+    swarm_stack_content_effective: >-
+      {{
+        swarm_stack_content
+        | combine(
+            {
+              'secrets': (swarm_stack_secrets_override | default({})),
+              'configs': (swarm_stack_configs_override | default({})),
+            },
+            recursive=True
+          )
+      }}
+
+- name: Launch stack deploy
+  community.docker.docker_stack:
+    name: "{{ swarm_stack_name }}"
+    state: present
+    with_registry_auth: "{{ swarm_stack_with_registry_auth | bool }}"
+    prune: "{{ swarm_stack_prune | bool }}"
+    compose:
+      - "{{ swarm_stack_content_effective }}"
+
+- name: Get stack task info
+  community.docker.docker_stack_task_info:
+    name: "{{ swarm_stack_name }}"
+  register: swarm_stack_task_info
+  when: swarm_stack_debug_task_info | bool
+
+- name: Debug stack task info
+  ansible.builtin.debug:
+    msg: "{{ swarm_stack_task_info.results }}"
+  when:
+    - swarm_stack_debug_task_info | bool
+    - swarm_stack_task_info is defined

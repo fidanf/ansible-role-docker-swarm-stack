@@ -1,0 +1,10 @@
+---
+profile: production
+
+skip_list:
+  - role-name  # role lives at repo root (not under roles/<name>/), galaxy will infer namespace.role_name from meta/main.yml
+  - meta-no-info  # documented via comments and README
+
+exclude_paths:
+  - .github/
+  - .git/

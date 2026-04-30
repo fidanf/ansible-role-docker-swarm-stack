@@ -1,0 +1,11 @@
+---
+- name: Authenticate against Docker registries
+  community.docker.docker_login:
+    username: "{{ item.username }}"
+    password: "{{ item.password }}"
+    registry_url: "{{ item.registry_url | default(omit) }}"
+    reauthorize: "{{ item.reauthorize | default(false) }}"
+  loop: "{{ swarm_stack_registry_logins }}"
+  loop_control:
+    label: "{{ item.registry_url | default('docker hub') }}"
+  no_log: true
