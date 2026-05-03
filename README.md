@@ -15,7 +15,7 @@ Stack-specific transformations (htpasswd hashing for Traefik, dotenv rendering f
 
 ## Requirements
 
-- Ansible >= 2.16
+- Ansible >= 2.18
 - `community.docker` collection on the controller
 - Targets: a Docker Swarm cluster (managers + workers); the role automatically narrows execution to the first manager when `swarm_stack_run_preflight: true`.
 
