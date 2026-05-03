@@ -8,7 +8,7 @@ galaxy_info:
     rotation-safe secrets and configs (rolling versions), optional eager
     network creation and registry login.
   license: MIT
-  min_ansible_version: "2.16"
+  min_ansible_version: "2.18"
   platforms:
     - name: Ubuntu
       versions:

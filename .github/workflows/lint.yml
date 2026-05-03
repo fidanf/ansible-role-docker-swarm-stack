@@ -1,5 +1,6 @@
 ---
 name: lint
+run-name: "CI: ${{ github.triggering_actor }} on ${{ github.head_ref }} (${{ github.event_name }})"
 
 on:
   push:
@@ -8,29 +9,58 @@ on:
       - main
   pull_request:
 
-jobs:
-  yamllint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Install yamllint
-        run: pip install yamllint
-      - name: Run yamllint
-        run: yamllint .
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
-  ansible-lint:
+env:
+  PIPENV_VENV_IN_PROJECT: true
+  PIPENV_VENV_OUTSIDE: ${{ github.workspace }}/.venv
+  ANSIBLE_COLLECTIONS_PATH: ${{ github.workspace }}/.ansible
+
+jobs:
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Set Python version
+        uses: actions/setup-python@v5
+        id: pyversion
         with:
-          python-version: "3.12"
-      - name: Install ansible-lint
-        run: pip install "ansible-core>=2.16,<2.19" "ansible-lint~=25.7"
+          python-version: '3.11'
+      - name: Prepare
+        shell: bash
+        run: |
+          python --version
+          pip install --upgrade pipenv
+      - name: Load dependencies from cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PIPENV_VENV_OUTSIDE }}
+          key: ${{ runner.os }}-pipenv-${{ hashFiles('Pipfile.lock') }}-${{ steps.pyversion.outputs.python-version }}
+          restore-keys: |
+            ${{ runner.os }}-pipenv-${{ hashFiles('Pipfile.lock') }}-${{ steps.pyversion.outputs.python-version }}
+      - name: Install dependencies
+        shell: bash
+        run: |
+          pipenv install --python ${{ steps.pyversion.outputs.python-version }}
+      - name: Save dependencies to cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.PIPENV_VENV_OUTSIDE }}
+          key: ${{ runner.os }}-pipenv-${{ hashFiles('Pipfile.lock') }}-${{ steps.pyversion.outputs.python-version }}
+      - name: Run yamllint
+        shell: bash
+        run: |
+          pipenv run yamllint .
       - name: Install required collections
-        run: ansible-galaxy collection install community.docker
+        shell: bash
+        run: |
+          pipenv run ansible-galaxy collection install community.docker
       - name: Run ansible-lint
-        run: ansible-lint -vv --offline
+        shell: bash
+        run: |
+          pipenv run ansible-lint --version
+          pipenv run ansible-lint -vv --offline
